@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Jobs\SendContactDeletedNotification;
 use App\Models\Contact;
+use App\Imports\ContactsImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ContactController extends Controller
 {
@@ -46,10 +48,10 @@ class ContactController extends Controller
             $contact = Contact::create($data);
             Log::info('Contact created successfully', ['contact_id' => $contact->id]);
 
-            return to_route('contacts.index');
+            return redirect()->route('contacts.index')->with('success', 'Contact created successfully');
         } catch (\Exception $e) {
             Log::error('Error creating contact: ' . $e->getMessage());
-            return back()->with('error', 'Erro ao criar contato. Por favor, tente novamente.');
+            return back()->with('error', 'Error creating contact. Please try again.');
         }
     }
 
@@ -75,12 +77,7 @@ class ContactController extends Controller
             $contact->update($data);
             Log::info('Contact updated successfully', ['contact_id' => $contact->id]);
 
-            return Inertia::render('Contacts/Index', [
-                'contacts' => Contact::latest()->paginate(10),
-                'flash' => [
-                    'success' => 'Contact updated successfully'
-                ]
-            ]);
+            return redirect()->route('contacts.index')->with('success', 'Contact updated successfully');
         } catch (\Exception $e) {
             Log::error('Error updating contact: ' . $e->getMessage());
             return back()->with('error', 'Error updating contact. Please try again.');
@@ -96,20 +93,46 @@ class ContactController extends Controller
             $contact->delete();
             
             Log::info('Contact deleted successfully', ['contact_id' => $contact->id]);
-            return Inertia::render('Contacts/Index', [
-                'contacts' => Contact::latest()->paginate(10),
-                'flash' => [
-                    'success' => 'Contact deleted successfully'
-                ]
-            ]);
+            return redirect()->route('contacts.index')->with('success', 'Contact deleted successfully');
         } catch (\Exception $e) {
             Log::error('Error deleting contact: ' . $e->getMessage());
-            return Inertia::render('Contacts/Index', [
-                'contacts' => Contact::latest()->paginate(10),
-                'flash' => [
-                    'error' => 'Error deleting contact. Please try again.'
-                ]
+            return back()->with('error', 'Error deleting contact. Please try again.');
+        }
+    }
+
+    public function import(Request $request)
+    {
+        try {
+            Log::info('Starting contact import process');
+            
+            $validator = Validator::make($request->all(), [
+                'file' => 'required|mimes:csv,xlsx,xls|max:2048'
             ]);
+
+            if ($validator->fails()) {
+                Log::warning('Import validation failed', ['errors' => $validator->errors()]);
+                return back()->withErrors($validator->errors());
+            }
+
+            Log::info('File validation passed, proceeding with import');
+            
+            $file = $request->file('file');
+            Log::info('File details', [
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize()
+            ]);
+
+            Excel::import(new ContactsImport, $file);
+            Log::info('Import completed successfully');
+
+            return redirect()->route('contacts.index')->with('success', 'Contacts imported successfully');
+        } catch (\Exception $e) {
+            Log::error('Error importing contacts', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Error importing contacts: ' . $e->getMessage());
         }
     }
 } 

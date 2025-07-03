@@ -46,15 +46,31 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
           <h2 class="text-3xl font-bold text-gray-900">Contacts</h2>
-          <button
-            @click="openContactModal()"
-            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform transition-all duration-200 hover:scale-105"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Add Contact
-          </button>
+          <div class="flex space-x-4">
+            <label
+              class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform transition-all duration-200 hover:scale-105 cursor-pointer"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+              Import CSV/Excel
+              <input
+                type="file"
+                class="hidden"
+                accept=".csv,.xlsx,.xls"
+                @change="handleFileUpload"
+              >
+            </label>
+            <button
+              @click="openContactModal()"
+              class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform transition-all duration-200 hover:scale-105"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Contact
+            </button>
+          </div>
         </div>
 
         <!-- Contact List -->
@@ -211,6 +227,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useForm, usePage, router } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import Pagination from '@/Components/Pagination.vue'
@@ -284,35 +301,58 @@ const closeContactModal = () => {
 
 const submitForm = () => {
   if (contactBeingUpdated.value) {
-    form.put(`/contacts/${contactBeingUpdated.value.id}`, {
-      onSuccess: () => closeContactModal(),
-      preserveScroll: true,
-    })
-  } else {
-    form.post('/contacts', {
+    form.put(route('contacts.update', contactBeingUpdated.value.id), {
       onSuccess: () => {
         closeContactModal();
-        window.location.href = route('contacts.index');
+        router.reload({ preserveScroll: true });
       },
       onError: (errors) => {
-        console.error('Erros no envio do formulário:', errors);
+        console.error('Erros ao atualizar contato:', errors);
       },
-      preserveScroll: true,
-    })
+    });
+  } else {
+    form.post(route('contacts.store'), {
+      onSuccess: () => {
+        closeContactModal();
+        router.reload({ preserveScroll: true });
+      },
+      onError: (errors) => {
+        console.error('Erros ao criar contato:', errors);
+      },
+    });
   }
 }
 
 const deleteContact = (contact) => {
   if (confirm('Are you sure you want to delete this contact?')) {
-    form.delete(`/contacts/${contact.id}`, {
-      preserveScroll: true,
-      preserveState: true,
+    router.delete(route('contacts.destroy', contact.id), {
       onSuccess: () => {
-        props.contacts.data = props.contacts.data.filter(c => c.id !== contact.id);
+        router.reload({ preserveScroll: true });
+      },
+      onError: (errors) => {
+        console.error('Erro ao excluir contato:', errors);
       },
     });
   }
 }
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  router.post(route('contacts.import'), formData, {
+    onSuccess: () => {
+      router.reload({ preserveScroll: true });
+      event.target.value = ''; // Limpa o input de arquivo
+    },
+    onError: (errors) => {
+      console.error('Erro ao importar arquivo:', errors);
+    },
+  });
+};
 
 // Watch for changes in flash messages
 watch(() => page.props.flash?.success, (newValue) => {

@@ -12,4 +12,5 @@ Route::prefix('contacts')->group(function () {
     Route::post('/', [ContactController::class, 'store'])->name('contacts.store');
     Route::put('/{contact}', [ContactController::class, 'update'])->name('contacts.update');
     Route::delete('/{contact}', [ContactController::class, 'destroy'])->name('contacts.destroy');
+    Route::post('/import', [ContactController::class, 'import'])->name('contacts.import');
 });

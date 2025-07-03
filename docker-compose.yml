@@ -9,6 +9,8 @@ services:
     working_dir: /var/www/
     volumes:
       - ./:/var/www
+      - ./storage:/var/www/storage:delegated
+      - ./bootstrap/cache:/var/www/bootstrap/cache:delegated
     networks:
       - contacts-network
     depends_on:
