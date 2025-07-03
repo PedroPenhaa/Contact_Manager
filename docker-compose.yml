@@ -1,0 +1,58 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contacts-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - contacts-network
+    depends_on:
+      - mailpit
+
+  nginx:
+    image: nginx:alpine
+    container_name: contacts-nginx
+    restart: unless-stopped
+    ports:
+      - "8167:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+    networks:
+      - contacts-network
+    depends_on:
+      - app
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: contacts-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - contacts-network
+
+  node:
+    image: node:20-alpine
+    container_name: contacts-node
+    volumes:
+      - ./:/var/www
+    working_dir: /var/www
+    networks:
+      - contacts-network
+    ports:
+      - "5173:5173"
+    environment:
+      - HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "npm install && npm run dev"
+
+networks:
+  contacts-network:
+    driver: bridge 
