@@ -210,7 +210,7 @@
 
 <script setup>
 import { ref, onMounted, watchEffect } from 'vue'
-import { useForm, usePage } from '@inertiajs/vue3'
+import { useForm, usePage, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
 import Pagination from '@/Components/Pagination.vue'
@@ -226,6 +226,7 @@ const props = defineProps({
   },
 })
 
+const page = usePage()
 const showingContactModal = ref(false)
 const contactBeingUpdated = ref(null)
 
@@ -289,7 +290,10 @@ const submitForm = () => {
     form.post('/contacts', {
       onSuccess: () => {
         closeContactModal();
-        window.location.reload();
+        window.location.href = route('contacts.index');
+      },
+      onError: (errors) => {
+        console.error('Erros no envio do formulário:', errors);
       },
       preserveScroll: true,
     })
@@ -310,10 +314,10 @@ const deleteContact = (contact) => {
 
 // Auto-hide flash messages after 5 seconds
 onMounted(() => {
-  if ($page.props.flash?.success || $page.props.flash?.error) {
+  if (page.props.flash?.success || page.props.flash?.error) {
     setTimeout(() => {
-      $page.props.flash.success = null;
-      $page.props.flash.error = null;
+      page.props.flash.success = null;
+      page.props.flash.error = null;
     }, 5000);
   }
 });

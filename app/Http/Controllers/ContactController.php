@@ -46,10 +46,10 @@ class ContactController extends Controller
             $contact = Contact::create($data);
             Log::info('Contact created successfully', ['contact_id' => $contact->id]);
 
-            return back()->with('success', 'Contact created successfully');
+            return to_route('contacts.index');
         } catch (\Exception $e) {
             Log::error('Error creating contact: ' . $e->getMessage());
-            return back()->with('error', 'Error creating contact. Please try again.');
+            return back()->with('error', 'Erro ao criar contato. Por favor, tente novamente.');
         }
     }
 
