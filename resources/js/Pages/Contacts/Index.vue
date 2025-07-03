@@ -9,7 +9,7 @@
       >
         <!-- Success Message -->
         <div
-          v-if="$page.props.flash?.success"
+          v-if="showSuccessMessage && $page.props.flash?.success"
           :key="'success'"
           class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg shadow-lg flex items-center transform transition-all duration-500 hover:scale-105"
           role="alert"
@@ -26,7 +26,7 @@
 
         <!-- Error Message -->
         <div
-          v-if="$page.props.flash?.error"
+          v-if="showErrorMessage && $page.props.flash?.error"
           :key="'error'"
           class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg shadow-lg flex items-center transform transition-all duration-500 hover:scale-105"
           role="alert"
@@ -209,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useForm, usePage, router } from '@inertiajs/vue3'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Modal.vue'
@@ -229,6 +229,8 @@ const props = defineProps({
 const page = usePage()
 const showingContactModal = ref(false)
 const contactBeingUpdated = ref(null)
+const showSuccessMessage = ref(false)
+const showErrorMessage = ref(false)
 
 const form = useForm({
   name: '',
@@ -312,15 +314,24 @@ const deleteContact = (contact) => {
   }
 }
 
-// Auto-hide flash messages after 5 seconds
-onMounted(() => {
-  if (page.props.flash?.success || page.props.flash?.error) {
+// Watch for changes in flash messages
+watch(() => page.props.flash?.success, (newValue) => {
+  if (newValue) {
+    showSuccessMessage.value = true
     setTimeout(() => {
-      page.props.flash.success = null;
-      page.props.flash.error = null;
-    }, 5000);
+      showSuccessMessage.value = false
+    }, 3000)
   }
-});
+})
+
+watch(() => page.props.flash?.error, (newValue) => {
+  if (newValue) {
+    showErrorMessage.value = true
+    setTimeout(() => {
+      showErrorMessage.value = false
+    }, 3000)
+  }
+})
 </script>
 
 <style>
